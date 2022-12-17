@@ -8,15 +8,18 @@ import {
   SubstrateBlock,
 } from "@subsquid/substrate-processor";
 import { In } from "typeorm";
+import assert from "assert";
 import { ethers } from "ethers";
 import { contractAddress, getContractEntity } from "./contract";
 import { Owner, Token, Transfer } from "./model";
 import * as erc721 from "./abi/erc721";
-import assert from 'assert';
 
 const database = new TypeormDatabase();
 
-assert(process.env.RPC_ENDPOINT, `RPC_ENDPOINT endpoint should be set to enable contract state queries`)
+assert(
+  process.env.RPC_ENDPOINT,
+  `RPC_ENDPOINT endpoint should be set to enable contract state queries`
+);
 
 const processor = new SubstrateBatchProcessor()
   .setDataSource({
@@ -24,9 +27,7 @@ const processor = new SubstrateBatchProcessor()
     archive: lookupArchive("moonriver", { release: "FireSquid" }),
   })
   .addEvmLog(contractAddress, {
-    filter: [[
-      erc721.events.Transfer.topic
-    ]],
+    filter: [[erc721.events.Transfer.topic]],
   });
 
 type Item = BatchProcessorItem<typeof processor>;
@@ -62,7 +63,9 @@ function handleTransfer(
   block: SubstrateBlock,
   event: EvmLogEvent
 ): TransferData {
-  const { from, to, tokenId } = erc721.events.Transfer.decode(((event.args.log || event.args)));
+  const { from, to, tokenId } = erc721.events.Transfer.decode(
+    event.args.log || event.args
+  );
 
   const transfer: TransferData = {
     id: event.id,
@@ -132,7 +135,7 @@ async function saveTransfers(ctx: Context, transfersData: TransferData[]) {
         contract: await getContractEntity(ctx.store),
       });
       tokens.set(token.id, token);
-      ctx.log.info(`Upserted NFT: ${token.id}`)
+      ctx.log.info(`Upserted NFT: ${token.id}`);
     }
     token.owner = to;
 
